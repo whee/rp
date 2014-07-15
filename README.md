@@ -10,4 +10,4 @@ Usage
     Options:
     -r, --read PIPE    Read from pipe named PIPE.
     -w, --write PIPE   Write to pipe named PIPE.
-    -p, --passthrough  Pass written data to standard output.`
+    -p, --passthrough  Pass written data to standard output.
