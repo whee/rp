@@ -76,7 +76,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		err = no
 		return
 	}
-	return n, nil
+	return
 }
 
 // Close unsubscribes from the Redis Pub/Sub channel and closes
