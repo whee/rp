@@ -16,24 +16,36 @@ func main() {
 	usage := `Redis Pipe.
 
 Usage:
-  rp -r <name>
-  rp -w <name> [-p]
+  rp      -r <name>...
+  rp [-p] -w <name>...
 
 Options:
-  -r, --read PIPE    Read from pipe named PIPE.
-  -w, --write PIPE   Write to pipe named PIPE.
+  -r, --read <name>...  Read from the named channel.
+  -w, --write <name>...  Write to the named channel.
   -p, --passthrough  Pass written data to standard output.`
 
-	arguments, _ := docopt.Parse(usage, nil, true, "Redis Pipe 0.1", false)
-	if wp, ok := arguments["--write"]; ok && wp != nil {
-		writeTo(wp.(string))
-	} else if r, ok := arguments["--read"]; ok && r != nil {
-		readFrom(r.(string))
+	arguments, err := docopt.Parse(usage, nil, true, "Redis Pipe 0.1", false)
+	if err != nil {
+		panic(err)
+	}
+	if w, ok := arguments["--write"]; ok {
+		names := w.([]string)
+		if len(names) > 0 {
+			writeTo(names)
+			return
+		}
+	}
+	if r, ok := arguments["--read"]; ok {
+		names := r.([]string)
+		if len(names) > 0 {
+			readFrom(names)
+			return
+		}
 	}
 }
 
-func writeTo(name string) (int64, error) {
-	t, err := rp.NewWriter(name)
+func writeTo(names []string) (int64, error) {
+	t, err := rp.NewWriter(names...)
 	if err != nil {
 		return 0, err
 	}
@@ -41,8 +53,8 @@ func writeTo(name string) (int64, error) {
 	return io.Copy(t, os.Stdin)
 }
 
-func readFrom(name string) (int64, error) {
-	t, err := rp.NewReader(name)
+func readFrom(names []string) (int64, error) {
+	t, err := rp.NewReader(names...)
 	if err != nil {
 		return 0, err
 	}

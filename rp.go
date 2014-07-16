@@ -11,18 +11,19 @@ import redis "github.com/garyburd/redigo/redis"
 
 // Writer implements writing to a Redis Pub/Sub channel.
 type Writer struct {
-	conn redis.Conn
-	name string
+	conn  redis.Conn
+	names []string
 }
 
-// NewWriter returns a new Writer backed by the named Redis Pub/Sub channel.
+// NewWriter returns a new Writer backed by the named Redis Pub/Sub
+// channels. Writes are sent to each named channel.
 // If unable to connect to Redis, the connection error is returned.
-func NewWriter(name string) (*Writer, error) {
+func NewWriter(names ...string) (*Writer, error) {
 	conn, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		return nil, err
 	}
-	return &Writer{conn, name}, nil
+	return &Writer{conn, names}, nil
 }
 
 // Close closes the Redis connection.
@@ -35,31 +36,40 @@ func (w *Writer) Close() error {
 // If the PUBLISH command fails, it returns why.
 func (w *Writer) Write(p []byte) (n int, err error) {
 	n = len(p)
-	_, err = w.conn.Do("PUBLISH", w.name, p)
+	for _, c := range w.names {
+		_, err = w.conn.Do("PUBLISH", c, p)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
 // Reader implements reading from a Redis Pub/Sub channel.
 type Reader struct {
-	conn redis.Conn
-	name string
-	psc  redis.PubSubConn
+	conn  redis.Conn
+	names []string
+	psc   redis.PubSubConn
 }
 
-// NewReader returns a new Reader backed by the named Redis Pub/Sub channel.
+// NewReader returns a new Reader backed by the named Redis Pub/Sub
+// channels. Reads may return content from any channel.
 // If unable to connect to Redis or subscribe to the named channel,
 // the error is returned.
-func NewReader(name string) (*Reader, error) {
+func NewReader(names ...string) (r *Reader, err error) {
 	conn, err := redis.Dial("tcp", ":6379")
 	if err != nil {
-		return nil, err
+		return
 	}
 	psc := redis.PubSubConn{conn}
-	err = psc.Subscribe(name)
-	if err != nil {
-		return nil, err
+	r = &Reader{conn, names, psc}
+	for _, c := range names {
+		err = psc.Subscribe(c)
+		if err != nil {
+			return
+		}
 	}
-	return &Reader{conn, name, psc}, nil
+	return
 }
 
 // Read reads data from the Redis Pub/Sub channel into p.

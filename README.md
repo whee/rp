@@ -4,10 +4,10 @@ rp - Redis Pipe
 Usage
 -----
 
-    rp -r <name>
-    rp -w <name> [-p]
+    rp      -r <name>...
+    rp [-p] -w <name>...
 
     Options:
-    -r, --read PIPE    Read from pipe named PIPE.
-    -w, --write PIPE   Write to pipe named PIPE.
-    -p, --passthrough  Pass written data to standard output.
+      -r, --read <name>...  Read from the named channel.
+      -w, --write <name>...  Write to the named channel.
+      -p, --passthrough  Pass written data to standard output.
