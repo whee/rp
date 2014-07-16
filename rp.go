@@ -9,6 +9,31 @@ package rp
 
 import redis "github.com/garyburd/redigo/redis"
 
+// Config specifies the network and address for the Redis server.
+type Config struct {
+	Network, Address string
+}
+
+// DefaultConfig is the network and address used for the Redis connection
+// if none is specified.
+var DefaultConfig = &Config{Network: "tcp", Address: ":6379"}
+
+// GetNetwork returns the network used for the config.
+func (c *Config) GetNetwork() string {
+	if c == nil {
+		return DefaultConfig.Network
+	}
+	return c.Network
+}
+
+// GetAddress returns the address used for the config.
+func (c *Config) GetAddress() string {
+	if c == nil {
+		return DefaultConfig.Address
+	}
+	return c.Address
+}
+
 // Writer implements writing to a Redis Pub/Sub channel.
 type Writer struct {
 	conn  redis.Conn
@@ -17,9 +42,10 @@ type Writer struct {
 
 // NewWriter returns a new Writer backed by the named Redis Pub/Sub
 // channels. Writes are sent to each named channel.
+// If config is nil, DefaultConfig is used.
 // If unable to connect to Redis, the connection error is returned.
-func NewWriter(names ...string) (*Writer, error) {
-	conn, err := redis.Dial("tcp", ":6379")
+func NewWriter(config *Config, names ...string) (*Writer, error) {
+	conn, err := redis.Dial(config.GetNetwork(), config.GetAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +80,11 @@ type Reader struct {
 
 // NewReader returns a new Reader backed by the named Redis Pub/Sub
 // channels. Reads may return content from any channel.
+// If config is nil, DefaultConfig is used.
 // If unable to connect to Redis or subscribe to the named channel,
 // the error is returned.
-func NewReader(names ...string) (r *Reader, err error) {
-	conn, err := redis.Dial("tcp", ":6379")
+func NewReader(config *Config, names ...string) (r *Reader, err error) {
+	conn, err := redis.Dial(config.GetNetwork(), config.GetAddress())
 	if err != nil {
 		return
 	}

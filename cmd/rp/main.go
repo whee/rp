@@ -5,8 +5,10 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
+
 	docopt "github.com/docopt/docopt-go"
 	"github.com/whee/rp"
 )
@@ -27,21 +29,33 @@ Options:
 	if err != nil {
 		panic(err)
 	}
+	var names []string
+	reading, writing, passthrough := false, false, false
+
 	if w, ok := arguments["--write"]; ok {
-		names := w.([]string)
-		if len(names) > 0 {
-			pt := arguments["--passthrough"].(bool)
-			writeTo(names, pt)
-			return
+		if ns := w.([]string); len(ns) > 0 {
+			names = ns
+			writing = true
+			passthrough = arguments["--passthrough"].(bool)
 		}
 	}
 	if r, ok := arguments["--read"]; ok {
-		names := r.([]string)
-		if len(names) > 0 {
-			readFrom(names)
-			return
+		if ns := r.([]string); len(ns) > 0 {
+			names = ns
+			reading = true
 		}
 	}
+
+	if writing {
+		_, err = writeTo(names, passthrough)
+	} else if reading {
+		_, err = readFrom(names)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
 
 type ptWriter struct {
@@ -57,7 +71,7 @@ func (w ptWriter) Write(p []byte) (n int, err error) {
 }
 
 func writeTo(names []string, passthrough bool) (int64, error) {
-	t, err := rp.NewWriter(names...)
+	t, err := rp.NewWriter(nil, names...)
 	if err != nil {
 		return 0, err
 	}
@@ -73,7 +87,7 @@ func writeTo(names []string, passthrough bool) (int64, error) {
 }
 
 func readFrom(names []string) (int64, error) {
-	t, err := rp.NewReader(names...)
+	t, err := rp.NewReader(nil, names...)
 	if err != nil {
 		return 0, err
 	}
