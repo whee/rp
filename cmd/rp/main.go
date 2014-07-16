@@ -25,20 +25,27 @@ Options:
   -p, --passthrough  Pass written data to standard output.`
 
 	arguments, _ := docopt.Parse(usage, nil, true, "Redis Pipe 0.1", false)
-
 	if wp, ok := arguments["--write"]; ok && wp != nil {
-		t, err := rp.NewWriter(wp.(string))
-		if err != nil {
-			panic(err)
-		}
-		defer t.Close()
-		io.Copy(t, os.Stdin)
+		writeTo(wp.(string))
 	} else if r, ok := arguments["--read"]; ok && r != nil {
-		t, err := rp.NewReader(r.(string))
-		if err != nil {
-			panic(err)
-		}
-		defer t.Close()
-		io.Copy(os.Stdout, t)
+		readFrom(r.(string))
 	}
+}
+
+func writeTo(name string) (int64, error) {
+	t, err := rp.NewWriter(name)
+	if err != nil {
+		return 0, err
+	}
+	defer t.Close()
+	return io.Copy(t, os.Stdin)
+}
+
+func readFrom(name string) (int64, error) {
+	t, err := rp.NewReader(name)
+	if err != nil {
+		return 0, err
+	}
+	defer t.Close()
+	return io.Copy(os.Stdout, t)
 }
