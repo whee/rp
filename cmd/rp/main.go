@@ -7,7 +7,6 @@ package main
 import (
 	"io"
 	"os"
-
 	docopt "github.com/docopt/docopt-go"
 	"github.com/whee/rp"
 )
@@ -31,7 +30,8 @@ Options:
 	if w, ok := arguments["--write"]; ok {
 		names := w.([]string)
 		if len(names) > 0 {
-			writeTo(names)
+			pt := arguments["--passthrough"].(bool)
+			writeTo(names, pt)
 			return
 		}
 	}
@@ -44,13 +44,32 @@ Options:
 	}
 }
 
-func writeTo(names []string) (int64, error) {
+type ptWriter struct {
+	w io.Writer
+}
+
+func (w ptWriter) Write(p []byte) (n int, err error) {
+	n, err = os.Stdout.Write(p)
+	if err != nil {
+		return
+	}
+	return w.w.Write(p)
+}
+
+func writeTo(names []string, passthrough bool) (int64, error) {
 	t, err := rp.NewWriter(names...)
 	if err != nil {
 		return 0, err
 	}
 	defer t.Close()
-	return io.Copy(t, os.Stdin)
+
+	var w io.Writer
+	if passthrough {
+		w = ptWriter{t}
+	} else {
+		w = t
+	}
+	return io.Copy(w, os.Stdin)
 }
 
 func readFrom(names []string) (int64, error) {
