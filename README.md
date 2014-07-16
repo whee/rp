@@ -1,6 +1,11 @@
 rp - Redis Pipe
 ===============
 
+Install
+-------
+
+    go get github.com/whee/rp/cmd/rp
+
 Usage
 -----
 
