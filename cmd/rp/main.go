@@ -13,49 +13,56 @@ import (
 	"github.com/whee/rp"
 )
 
+type config struct {
+	channels    []string
+	read        bool
+	write       bool
+	passthrough bool
+	rpConfig    rp.Config
+}
+
 func main() {
 	usage := `Redis Pipe.
 
 Usage:
-  rp      -r <name>...
-  rp [-p] -w <name>...
+	rp      read  <name>...
+	rp [-p] write <name>...
+	rp      -n <network> -a <address> read  <name>...
+	rp [-p] -n <network> -a <address> write <name>...
 
 Options:
-  -r, --read <name>...  Read from the named channel.
-  -w, --write <name>...  Write to the named channel.
-  -p, --passthrough  Pass written data to standard output.`
+  -p, --passthrough  Pass written data to standard output.
+  -n, --network <network>  Network of the Redis server [default: tcp]
+  -a, --address <address>  Address of the Redis server [default: :6379]`
 
-	arguments, err := docopt.Parse(usage, nil, true, "Redis Pipe 0.1", false)
+	arguments, err := docopt.Parse(usage, nil, true, "Redis Pipe 0.9", false)
 	if err != nil {
 		panic(err)
 	}
-	var names []string
-	reading, writing, passthrough := false, false, false
-
-	if w, ok := arguments["--write"]; ok {
-		if ns := w.([]string); len(ns) > 0 {
-			names = ns
-			writing = true
-			passthrough = arguments["--passthrough"].(bool)
-		}
+	conf := config{
+		channels:    arguments["<name>"].([]string),
+		read:        arguments["read"].(bool),
+		write:       arguments["write"].(bool),
+		passthrough: arguments["--passthrough"].(bool),
+		rpConfig: rp.Config{
+			Network: arguments["--network"].(string),
+			Address: arguments["--address"].(string)},
 	}
-	if r, ok := arguments["--read"]; ok {
-		if ns := r.([]string); len(ns) > 0 {
-			names = ns
-			reading = true
-		}
-	}
-
-	if writing {
-		_, err = writeTo(names, passthrough)
-	} else if reading {
-		_, err = readFrom(names)
-	}
+	_, err = conf.do()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+func (c *config) do() (n int64, err error) {
+	if c.write {
+		n, err = writeTo(c)
+	} else if c.read {
+		n, err = readFrom(c)
+	}
+	return
 }
 
 type ptWriter struct {
@@ -70,15 +77,15 @@ func (w ptWriter) Write(p []byte) (n int, err error) {
 	return w.w.Write(p)
 }
 
-func writeTo(names []string, passthrough bool) (int64, error) {
-	t, err := rp.NewWriter(nil, names...)
+func writeTo(c *config) (int64, error) {
+	t, err := rp.NewWriter(&c.rpConfig, c.channels...)
 	if err != nil {
 		return 0, err
 	}
 	defer t.Close()
 
 	var w io.Writer
-	if passthrough {
+	if c.passthrough {
 		w = ptWriter{t}
 	} else {
 		w = t
@@ -86,8 +93,8 @@ func writeTo(names []string, passthrough bool) (int64, error) {
 	return io.Copy(w, os.Stdin)
 }
 
-func readFrom(names []string) (int64, error) {
-	t, err := rp.NewReader(nil, names...)
+func readFrom(c *config) (int64, error) {
+	t, err := rp.NewReader(&c.rpConfig, c.channels...)
 	if err != nil {
 		return 0, err
 	}
