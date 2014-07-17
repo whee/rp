@@ -31,9 +31,9 @@ Usage:
 	rp [-p] -n <network> -a <address> write <name>...
 
 Options:
-  -p, --passthrough  Pass written data to standard output.
-  -n, --network <network>  Network of the Redis server [default: tcp]
-  -a, --address <address>  Address of the Redis server [default: :6379]`
+	-p, --passthrough  Pass written data to standard output.
+	-n, --network <network>  Network of the Redis server [default: tcp]
+	-a, --address <address>  Address of the Redis server [default: :6379]`
 
 	arguments, err := docopt.Parse(usage, nil, true, "Redis Pipe 0.9", false)
 	if err != nil {
