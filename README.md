@@ -14,7 +14,7 @@ Usage
     rp      -n <network> -a <address> read  <name>...
     rp [-p] -n <network> -a <address> write <name>...
 
-Options:
-    -p, --passthrough  Pass written data to standard output.
-    -n, --network <network>  Network of the Redis server [default: tcp]
-    -a, --address <address>  Address of the Redis server [default: :6379]
+    Options:
+      -p, --passthrough  Pass written data to standard output.
+      -n, --network <network>  Network of the Redis server [default: tcp]
+      -a, --address <address>  Address of the Redis server [default: :6379]
